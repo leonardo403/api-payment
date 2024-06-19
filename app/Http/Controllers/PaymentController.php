@@ -7,18 +7,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Queue;
 use App\Jobs\ProcessPaymentJob;
 use Symfony\Component\HttpFoundation\Response;
+use App\Http\Requests\PaymentRequest;
 
 
 class PaymentController extends Controller
 {
-    public function processPayment(Request $request)
+    public function processPayment(PaymentRequest $request)
     {
-        $validatedData = $request->validate([
-            'amount' => 'required|numeric',
-            'payment_method' => 'required|string',
-            'buyer_document' => 'required|string',
-            'produto_id' => 'required|integer|exists:products,id',
-        ]);
+        $validatedData = $request->validated();
 
         $payment = Payment::create($validatedData);
 
