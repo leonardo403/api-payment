@@ -10,6 +10,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Symfony\Component\HttpFoundation\Response;
 use App\Payments\PaymentContext;
+use Illuminate\Support\Facades\DB;
 
 class ProcessPaymentJob implements ShouldQueue
 {
@@ -24,12 +25,17 @@ class ProcessPaymentJob implements ShouldQueue
 
     public function handle()
     {
-        $paymentStrategy = app($this->payment->payment_method);
-        $paymentContext = new PaymentContext($paymentStrategy);
-
-        $result = $paymentContext->executePayment($this->payment->amount);
-
-        $this->payment->update(['status' => 'processed']);
+        try {
+            DB::beginTransaction();
+            $paymentStrategy = app($this->payment->payment_method);
+            $paymentContext = new PaymentContext($paymentStrategy);
+            $result = $paymentContext->executePayment($this->payment->amount);
+            $this->payment->update(['status' => 'processed']);
+            DB::commit();
+        } catch (\Throwable $th) {
+            DB::rollback();
+            throw $th;
+        }
 
         return response()->json(['success' => $result]);
     }
